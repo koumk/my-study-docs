@@ -1,0 +1,27 @@
+#FileVersion=0600
+'==============================================================================
+'                     *** JP1/Script サンプルプログラム ***
+'                                - Smpl002 -
+'==============================================================================
+' ファイルの先頭にタイトルを付ける
+Dim today
+today=Year & Format("%02d",Month) & Format("%02d",Day) 
+Message( Target_DispOn, str(today), ">>> "+_SCF_+"下のファイル一覧 <<<" ,200,100)
+
+ret1=Exec("C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",True," -File ""C:\Users\steve\OneDrive\ドキュメント\自分資料\仕事\Jp1\test.ps1"" ")
+
+If _EXEC_RTN_ =1 Then
+Message( Target_DispOn, str(today),str(_EXE_RTN_) ,200,100)
+End if
+' 現在のスクリプトファイルの格納先フォルダ下のファイルをファイルへ出力する
+Dim currentPath
+currentPath = _BIN_
+SetPath( _SCF_ )
+
+Dim	nameBuff
+for nameBuff = "*.*" do
+    Message( TarGet_File, _SCF_+"SmplOut.TXT", nameBuff )
+end for
+
+' 元のカレントフォルダへ戻す
+SetPath( currentPath )

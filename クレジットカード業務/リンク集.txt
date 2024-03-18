@@ -1,3 +1,14 @@
+お金を事前にチャージすることで使いすぎを防げる「プリペイドカード」
+
+
+郵便番号データ
+https://www.post.japanpost.jp/zipcode/dl/readme.html
+
+コードマスタ
+https://qiita.com/Buzzword111/items/ad3162a6e7299fa2e736
+
+
+
 https://www.jhipster.tech/microservices-architecture/
 使用 JHipster 進行微服務
 

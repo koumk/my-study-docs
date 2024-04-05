@@ -1,3 +1,20 @@
+https://cardgala.com/compare/eposgoldcard/sevencardplusgold
+いつでもポイント2倍
+セブンイレブン、イトーヨーカドー、西武、オムニ7などセブン&アイグループの対象店でのカード利用でポイントが2倍貯まります。
+
+nanacoボーナスポイント
+セブンイレブン、イトーヨーカドー、ヨークマートにて、カード利用でボーナスポイント対象商品を購入すると、通常ポイントに加え対象商品ごとのnanacoボーナスポイントが加算されます。
+
+累計ボーナスnanacoポイント
+イトーヨーカドー、ヨークマートでの年間カード利用の累計ポイントに応じて、ボーナスnanacoポイントが加算されます。
+
+累計100万円分のポイント：3,000ポイント
+累計150万円分のポイント：10,000ポイント
+累計150万円以降、100万円ごとに：10,000ポイント
+
+
+
+
            <DT><H3 ADD_DATE="1711331681" LAST_MODIFIED="1711331695">クレジットカード_銀行</H3>
             <DL><p>
                 <DT><A HREF="https://codezine.jp/article/detail/18363" ADD_DATE="1709347125" ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADFklEQVQ4jWXTTWhcZRTG8f953zszmZnM3Hy0qU1atGka1DKEakRLiS0kUBQqhiRIoQY36kqxXQhFlGxEwYWLYBHsqhSCpiJSpQqJWKGgC9uGQGhoSkzSqM33JPNxO3Pve1womNJn/Tybw/kJAAwZGHIAfDrRL2JPmqjarUgWAVHdjExsHKIRTndc2r4RwACOD3/dRU1q2Hh2wIVAqQwxURQIVUinsFZRF426Uukt3nvuHmAEEIau7SSTHiOZzbG+GuWaaznemjW7U55ECkulqn45nXcLS0Woa7RUCpNsFXoYOrLsAZBKnpNkNqf59crZ51tiBxtruDKT5/KdTTUCTzcl2Zv2TFfHTjBURmbSOZOJzkXogPDR9T5JJS5poRx+cKzFJj2Rs+OLiqrgFJxyeH+WVw82al+7L698N6c/385HJpP0XOl+vydxGdQQ7Xy0lra6OIPfzqqNGYmqyqE9ad7ubGK9HPL7UkkKodNy6GhurOHPwCgxGTQCRwkCXtyXtaPTG4KqRKHj/a7dfHyshfPXlzlzZY5nH0nxxcSKdOxISu8B31IsYYWjRlV8jIqfsDK5Gqg4ONScpuexDIWKY2o1oPvJBiqRcnt+i1sb99VPWMFFAuL/e0QAhdCBAqc7m3hz7C7ViuPiy614Am/8uIB49v/yfzFGNE+ElkLVjh0J6Trg81ehyq0/ttiXjePHDV9NbzC3FqAG9mfjsho4xVgFzXsOrpJKnRiZWosySc+eeryea4sFOd/bihN47fs5ZtYCsEIsbvVEm887P92NSKds5IKrnlb0gknpS1N3i5x6pon+dl+K1UiHbyzLxHwBrADgWaOfH98rP8xu6vxKgKlNigv0goCKfHJjlBq/7/V2r/J3IYyVQ0cm4XFzpUzMCId3JXmhzeeXhQKf/XavKg0Ncd3a+Jp3nxrY9sq1Y8TSOfJr0RN7aultqzP1CStOlcViqJfv5N3sUgmpb7Ra3pxkq9jD0JHlBzCZVGoYYwdcKFAqPYTJGIeL3CjBg5ge5ow9aV21223j7GxsXJ1e5Ezum+2bfwB2zHTX0asr8AAAAABJRU5ErkJggg==">ASP.NET CoreによるgRPCクライアントの開発を理解しよう (1/2)|CodeZine（コードジン）</A>

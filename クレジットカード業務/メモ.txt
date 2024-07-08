@@ -1,0 +1,11 @@
+
+SELECT
+  * 
+FROM
+  Aテーブル 
+  LEFT OUTER JOIN Bテーブル 
+    ON Aテーブル.キー = Bテーブル.キー 
+WHERE
+  Bテーブル.キー IS NULL
+
+  

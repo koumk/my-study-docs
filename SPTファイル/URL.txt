@@ -1,0 +1,10 @@
+https://stackoverflow.com/questions/39345335/powershell-read-file-in-chunks
+
+bcp bulkInsertTest.Sales  out "C:\temp\sales_order_detail.dat" -S localhost -T -c -h 'TABLOCK'
+
+不正検知
+https://www.jcb.co.jp/security/frauddetection-system/
+
+https://www.jcb.co.jp/security/frauddetection-system/pop/index.html
+
+https://www.jcb.co.jp/processing/onetimepassword.html

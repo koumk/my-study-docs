@@ -1,0 +1,27 @@
+以下のVBAマクロを使用すると、開いているExcelファイル内のすべてのシートの表示倍率を100%に設定し、セルA1を選択できます。  
+  
+### VBAコード:
+```vba
+Sub ResetZoomAndSelectA1()
+    Dim ws As Worksheet
+    Application.ScreenUpdating = False ' 画面更新を停止（処理を高速化）
+    
+    For Each ws In ActiveWorkbook.Sheets
+        ws.Activate
+        ActiveWindow.Zoom = 100 ' 表示倍率を100%に設定
+        ws.Range("A1").Select ' A1セルを選択
+    Next ws
+    
+    Application.ScreenUpdating = True ' 画面更新を再開
+End Sub
+```
+  
+### 説明：
+- `For Each ws In ActiveWorkbook.Sheets`：アクティブなブック内のすべてのシートをループ
+- `ws.Activate`：シートをアクティブ化（`ActiveWindow.Zoom`の適用に必要）
+- `ActiveWindow.Zoom = 100`：表示倍率を100%に設定
+- `ws.Range("A1").Select`：A1セルを選択
+- `Application.ScreenUpdating = False`：処理を高速化
+- `Application.ScreenUpdating = True`：画面更新を再開  
+
+このコードをExcelのVBAエディタ（Alt + F11）に入力し、モジュールに追加して実行してください。

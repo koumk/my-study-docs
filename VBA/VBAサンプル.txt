@@ -1,3 +1,56 @@
+以下に、Excelシートからカンマ区切りのCSVファイル（ダブルクォーテーションなし、ヘッダーなし）を出力するVBAのサンプルコードを示します。このコードは、アクティブなシートの内容をCSVファイルとして保存します。
+
+
+Sub ExportToCSV()
+    Dim ws As Worksheet
+    Dim rng As Range
+    Dim filePath As String
+    Dim fileNum As Integer
+    Dim row As Long, col As Long
+    Dim lineData As String
+    
+    ' アクティブシートを設定
+    Set ws = ActiveSheet
+    
+    ' 出力先ファイルパス（デスクトップに"output.csv"として保存）
+    filePath = Environ$("USERPROFILE") & "\Desktop\output.csv"
+    
+    ' 使用されている範囲を取得
+    Set rng = ws.UsedRange
+    
+    ' ファイル番号を取得
+    fileNum = FreeFile
+    
+    ' ファイルを開く（上書き）
+    Open filePath For Output As #fileNum
+    
+    ' 各行を処理
+    For row = 1 To rng.Rows.Count
+        lineData = ""
+        
+        ' 各列を処理
+        For col = 1 To rng.Columns.Count
+            ' セルの値を取得
+            If col = 1 Then
+                lineData = rng.Cells(row, col).Value
+            Else
+                ' カンマで連結
+                lineData = lineData & "," & rng.Cells(row, col).Value
+            End If
+        Next col
+        
+        ' 1行書き込み
+        Print #fileNum, lineData
+    Next row
+    
+    ' ファイルを閉じる
+    Close #fileNum
+    
+    MsgBox "CSVファイルを出力しました: " & filePath, vbInformation
+End Sub
+
+
+
 以下のVBAマクロを使用すると、開いているExcelファイル内のすべてのシートの表示倍率を100%に設定し、セルA1を選択できます。  
   
 ### VBAコード:

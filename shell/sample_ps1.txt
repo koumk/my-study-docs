@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# ファイルパス
+changes_file="changes.csv"
+data_file="data.csv"
+output_file="output.csv"
+target_column=2  # 置換対象の列番号（Valueは2列目）
+
+# 一時ファイル作成
+temp_file="temp_data.csv"
+
+# ヘッダーを保持しつつ、データを処理
+head -n 1 "$data_file" > "$output_file"  # ヘッダー行をコピー
+
+# changes.csvから置換ルールを読み込み、data.csvを処理
+tail -n +2 "$changes_file" | while IFS=',' read -r before after; do
+    # data.csvの対象列を置換（ヘッダー除く）
+    awk -v col="$target_column" -v b="$before" -v a="$after" \
+        'BEGIN{FS=OFS=","} NR>1{if($col==b)$col=a}1' "$data_file" > "$temp_file"
+    mv "$temp_file" "$data_file"
+done
+
+# 最終結果をoutput.csvに移動
+mv "$data_file" "$output_file"
+
+echo "処理が完了しました。出力ファイル: $output_file"
+
+
+
+
+Excel COMオブジェクトの利用が要求されたので、よろしくお願いいたします。
+Excel COMオブジェクトを使用して、Excelファイルから変更ルールを読み込み、CSVファイルの指定項目を別の値に変更するPowerShellスクリプトを作成します。以下に実装例とその考え方を示します。
+
+前提条件
+Excelがローカルマシンにインストールされている（COMオブジェクトを使用するため）。
+Excelファイル（例: changes.xlsx）に「Before」と「After」の列がある。
+CSVファイル（例: data.csv）の特定の列（例: Value）を置換対象とする。
+
+
+
+# ファイルパス
+$excelPath = "C:\path\to\changes.xlsx"
+$csvPath = "C:\path\to\data.csv"
+$outputCsvPath = "C:\path\to\output.csv"
+$targetColumn = "Value"  # 置換対象のCSV列名
+
+# Excel COMオブジェクトの作成
+$excel = New-Object -ComObject Excel.Application
+$excel.Visible = $false  # Excelを非表示で実行
+$workbook = $excel.Workbooks.Open($excelPath)
+$worksheet = $workbook.Worksheets.Item(1)  # 最初のシートを対象
+
+# 使用済み範囲を取得
+$usedRange = $worksheet.UsedRange
+$rows = $usedRange.Rows.Count
+
+# 変更ルールをハッシュテーブルに格納
+$changeMap = @{}
+for ($row = 2; $row -le $rows; $row++) {  # ヘッダーを除く2行目から
+    $before = $worksheet.Cells.Item($row, 1).Value2  # 1列目: Before
+    $after = $worksheet.Cells.Item($row, 2).Value2   # 2列目: After
+    if ($before -and $after) {
+        $changeMap[$before] = $after
+    }
+}
+
+# Excelを閉じる
+$workbook.Close()
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+
+# CSVを読み込み、指定列を置換
+$data = Import-Csv -Path $csvPath
+foreach ($row in $data) {
+    $currentValue = $row.$targetColumn
+    if ($changeMap.ContainsKey($currentValue)) {
+        $row.$targetColumn = $changeMap[$currentValue]
+    }
+}
+
+# 結果を新しいCSVに保存
+$data | Export-Csv -Path $outputCsvPath -NoTypeInformation -Encoding UTF8
+
+Write-Host "処理が完了しました。出力ファイル: $outputCsvPath"
+
+
+コードの説明
+Excel COMオブジェクトの初期化:
+New-Object -ComObject Excel.ApplicationでExcelを起動。
+$excel.Visible = $falseでバックグラウンド実行。
+対象のExcelファイルを開き、最初のワークシートを取得。
+変更ルールの読み込み:
+$worksheet.UsedRangeで使用されているセル範囲を取得。
+2行目（ヘッダー除く）からデータを読み込み、ハッシュテーブルに格納。
+Cells.Item(行, 列).Value2でセル値を参照。
+COMオブジェクトの解放:
+Excelを閉じ、リソースを解放（メモリリーク防止）。
+ReleaseComObjectで明示的に解放。
+CSVの処理:
+Import-CsvでCSVを読み込み、指定列（$targetColumn）をチェック。
+ハッシュテーブルに基づいて値を置換。
+出力:
+Export-Csvで結果を保存。
+実行方法
+スクリプトをreplace_com.ps1として保存。
+PowerShellで実行:
+powershell
+
+折りたたむ
+
+たたむ
+
+コピー
+.\replace_com.ps1
+output.csvに置換結果が出力される。
+注意点
+エラーハンドリングの追加:
+powershell
+
+折りたたむ
+
+たたむ
+
+コピー
+try {
+    $excel = New-Object -ComObject Excel.Application -ErrorAction Stop
+} catch {
+    Write-Error "Excelの起動に失敗しました: $_"
+    exit
+}
+COMオブジェクトのクリーンアップ:
+Excelがプロセスに残らないよう、必ずQuitとReleaseComObjectを実行。
+パフォーマンス:
+大量データの場合、COMオブジェクトはImportExcelより遅い可能性あり。
+考え方のポイント
+COMの基本:
+Excel COMはオブジェクト指向で、セル単位やシート単位で操作可能。
+リソース管理が重要（解放漏れでプロセスが残るリスク）。
+データ処理の効率化:
+ハッシュテーブルで検索を高速化。
+CSVの操作はPowerShellの強みを活かす。
+柔軟性:
+$targetColumnをパラメータ化すれば、任意の列に対応可能。
+このスクリプトをベースに、ファイルパスや対象列を調整してください。追加の質問があればお気軽にどうぞ！
+

@@ -1,0 +1,11 @@
+千手リンク
+
+千手コマンド一覧
+https://senjufamily.nri.co.jp/manual/senju/download/2024/html/developers_guide/command-list.html
+
+システム全般のQ&A
+https://senjufamily.nri.co.jp/library/manual/sdc/2023/html/users_guide/reference/qanda.html
+
+システム共通
+https://senjufamily.nri.co.jp/manual/senju/download/2024/html/release_note/precautions/common.html
+

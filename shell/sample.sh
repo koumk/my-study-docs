@@ -1,3 +1,82 @@
+Bashスクリプトでパラメータ（オプション）に-Eが含まれているかを判断するサンプルコード
+
+
+#!/bin/bash
+
+# フラグ変数
+has_E=false
+
+# 引数をループでチェック
+for arg in "$@"; do
+  if [ "$arg" = "-E" ]; then
+    has_E=true
+    break
+  fi
+done
+
+# -Eの有無に応じた処理
+if $has_E; then
+  echo "Parameter -E is present"
+else
+  echo "Parameter -E is not present"
+fi
+
+echo "All arguments: $@"
+
+
+
+#!/bin/bash
+
+has_E=false
+
+while getopts "E" opt; do
+  case $opt in
+    E) has_E=true;;
+    ?) echo "Usage: $0 [-E]"; exit 1;;
+  esac
+done
+
+if $has_E; then
+  echo "Batch stopping all jobs..."
+  # ジョブの一括強制終了処理（仮）
+  for job in $(ps -ef | grep "[j]ob" | awk '{print $2}'); do
+    kill -9 "$job" && echo "Stopped job $job"
+  done
+else
+  echo "No -E specified, listing job status instead..."
+  # ジョブ状態確認処理（仮）
+  ps -ef | grep "[j]ob"
+fi
+
+
+#!/bin/bash
+
+# フラグ変数
+has_E=false
+
+# オプション解析
+while getopts "a:b:Ec" opt; do
+  case $opt in
+    a) echo "Option -a with value: $OPTARG";;
+    b) echo "Option -b with value: $OPTARG";;
+    E) has_E=true;;
+    c) echo "Option -c detected";;
+    ?) echo "Unknown option"; exit 1;;
+  esac
+done
+
+# -Eの有無に応じた処理
+if $has_E; then
+  echo "Parameter -E is present"
+else
+  echo "Parameter -E is not present"
+fi
+
+# 残りの引数（オプション以外）をシフト
+shift $((OPTIND - 1))
+echo "Remaining arguments: $@"
+
+
 #!/bin/bash
 
 # 引数チェック（2つあるか）

@@ -9,3 +9,5 @@ https://senjufamily.nri.co.jp/library/manual/sdc/2023/html/users_guide/reference
 システム共通
 https://senjufamily.nri.co.jp/manual/senju/download/2024/html/release_note/precautions/common.html
 
+ジョブ／ネット制御用コマンド
+https://senjufamily.nri.co.jp/manual/senju/download/2023/html/developers_guide/command-usage.html

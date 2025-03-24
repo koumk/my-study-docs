@@ -1,3 +1,57 @@
+iconv を使用して、Windows（Shift-JIS）から Linux（EUC-JP）に文字コードを変換し、同時に改行コードを CRLF（Windows）から LF（Linux）に変換するには、以下のコマンドを使用します。
+
+サンプルコマンド:
+bash
+コピーする
+編集する
+
+iconv -f SHIFT-JIS -t EUC-JP input.txt | sed 's/\r$//' > output.txt
+
+説明:
+iconv -f SHIFT-JIS -t EUC-JP input.txt
+
+-f SHIFT-JIS（SJIS や CP932 でも可）：変換元の文字コード（Windows の Shift-JIS）
+
+-t EUC-JP：変換先の文字コード（Linux の EUC-JP）
+
+sed 's/\r$//'
+
+Windows の改行コード CRLF (\r\n) を LF (\n) に変換（\r を削除）
+
+> output.txt
+
+変換後のデータを output.txt に保存
+
+確認:
+変換後の output.txt を file コマンドで確認できます。
+
+bash
+コピーする
+編集する
+file output.txt
+または、エンコーディングをチェック：
+
+bash
+コピーする
+編集する
+iconv -f EUC-JP -t UTF-8 output.txt | less
+バッチ処理（複数ファイル変換）
+ディレクトリ内のすべての *.txt を変換する場合:
+
+bash
+コピーする
+編集する
+for file in *.txt; do
+  iconv -f SHIFT-JIS -t EUC-JP "$file" | sed 's/\r$//' > "converted_$file"
+done
+これにより、converted_ファイル名.txt として変換されたファイルが作成されます。
+
+以上です！
+
+
+
+
+
 Bashスクリプトでパラメータ（オプション）に-Eが含まれているかを判断するサンプルコード
 
 

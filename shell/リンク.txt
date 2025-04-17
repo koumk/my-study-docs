@@ -1,3 +1,14 @@
+5.1.2. 各構成要素の状態
+5.1.2.1. ジョブの状態
+5.1.2.2. ネットの状態
+5.1.2.3. フレームの状態
+
+https://senjufamily.nri.co.jp/manual/senju/download/2023/html/users_guide/jobschedule/overview/index.html
+
+
+
+
+
 千手リンク
 
 千手コマンド一覧

@@ -1,3 +1,84 @@
+# 対象フォルダのパス
+$targetFolder = "C:\Path\To\Your\Folder"
+
+# 対象ファイルの拡張子（例: .txt, .csv など）
+$targetExtensions = @("*.txt", "*.csv")
+
+# 対象フォルダ内のファイルを再帰的に取得
+foreach ($extension in $targetExtensions) {
+    Get-ChildItem -Path $targetFolder -Recurse -Include $extension | ForEach-Object {
+        $file = $_
+        Write-Host "処理中: $($file.FullName)"
+
+        try {
+            # ファイルの内容をShift-JISで読み込み
+            $content = Get-Content -Path $file.FullName -Encoding ShiftJIS -Raw
+
+            # 改行コードをCRLFからLFに変換
+            $content = $content -replace "`r`n", "`n"
+
+            # EUC-JPエンコーディングで保存
+            # PowerShellのデフォルトではEUC-JPを直接サポートしていないため、.NETのSystem.Text.Encodingを使用
+            $eucjp = [System.Text.Encoding]::GetEncoding("EUC-JP")
+            [System.IO.File]::WriteAllText($file.FullName, $content, $eucjp)
+
+            Write-Host "変換完了: $($file.FullName)"
+        }
+        catch {
+            Write-Host "エラー: $($file.FullName) - $($_.Exception.Message)"
+        }
+    }
+}
+
+
+Sub ReplaceColumnWithArray()
+    ' 変数の宣言
+    Dim ws As Worksheet
+    Dim replaceArray() As Variant
+    Dim targetColumn As String
+    Dim startRow As Long
+    Dim lastRow As Long
+    Dim i As Long
+    Dim arrayIndex As Long
+    
+    ' 設定
+    Set ws = ThisWorkbook.Sheets("Sheet1") ' 対象のワークシート
+    targetColumn = "A"                      ' 置換対象の列（例: 列A）
+    startRow = 2                           ' 開始行（例: 2行目から）
+    
+    ' 配列の定義（置換に使用するデータ）
+    replaceArray = Array("値1", "値2", "値3", "値4", "値5") ' 置換用の配列
+    
+    ' 最終行の取得
+    lastRow = ws.Cells(ws.Rows.Count, targetColumn).End(xlUp).Row
+    
+    ' 配列の要素をループして置換
+    arrayIndex = 0
+    For i = startRow To lastRow
+        ' 配列の要素が尽きた場合はループを抜ける
+        If arrayIndex > UBound(replaceArray) Then Exit For
+        
+        ' 対象セルに配列の要素を書き込む
+        ws.Cells(i, targetColumn).Value = replaceArray(arrayIndex)
+        
+        ' 配列のインデックスをインクリメント
+        arrayIndex = arrayIndex + 1
+    Next i
+    
+    MsgBox "置換が完了しました！", vbInformation
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
 以下に、Excelシートからカンマ区切りのCSVファイル（ダブルクォーテーションなし、ヘッダーなし）を出力するVBAのサンプルコードを示します。このコードは、アクティブなシートの内容をCSVファイルとして保存します。
 
 

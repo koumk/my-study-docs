@@ -1,3 +1,8 @@
+https://stackoverflow.com/questions/43658276/create-folder-path-if-does-not-exist-saving-from-vba
+
+
+
+
 5.1.2. 各構成要素の状態
 5.1.2.1. ジョブの状態
 5.1.2.2. ネットの状態

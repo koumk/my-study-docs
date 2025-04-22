@@ -1,3 +1,64 @@
+Sub ExportToCSV()
+    Dim ws As Worksheet
+    Dim filePath As String
+    Dim fileNum As Integer
+    Dim lastRow As Long, lastCol As Long
+    Dim row As Long, col As Long
+    Dim lineData As String
+    
+    ' アクティブシートを設定
+    Set ws = ActiveSheet
+    
+    ' 出力先ファイルパス（デスクトップに"output.csv"として保存）
+    filePath = Environ$("USERPROFILE") & "\Desktop\output.csv"
+    
+    ' A列の有効行数を算出（2行目から）
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    If lastRow < 2 Then
+        MsgBox "2行目以降にデータがありません。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' 2行目の有効列数を算出
+    lastCol = ws.Cells(2, ws.Columns.Count).End(xlToLeft).Column
+    If lastCol < 1 Then
+        MsgBox "2行目にデータがありません。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ファイル番号を取得
+    fileNum = FreeFile
+    
+    ' ファイルを開く（上書き）
+    Open filePath For Output As #fileNum
+    
+    ' 2行目から最終行まで処理
+    For row = 2 To lastRow
+        lineData = ""
+        
+        ' 1列目から最終列まで処理
+        For col = 1 To lastCol
+            ' セルの値を取得
+            If col = 1 Then
+                lineData = ws.Cells(row, col).Value
+            Else
+                ' カンマで連結
+                lineData = lineData & "," & ws.Cells(row, col).Value
+            End If
+        Next col
+        
+        ' 1行書き込み
+        Print #fileNum, lineData
+    Next row
+    
+    ' ファイルを閉じる
+    Close #fileNum
+    
+    MsgBox "CSVファイルを出力しました: " & filePath, vbInformation
+End Sub
+
+
+
 # 対象フォルダのパス
 $targetFolder = "C:\Path\To\Your\Folder"
 

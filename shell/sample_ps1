@@ -1,0 +1,513 @@
+$ErrorActionPreference = "Continue" # デフォルト設定
+$logFile = "C:\Logs\error.log"
+
+try {
+    $path = "C:\NonExistent\file.txt"
+    if (-not (Test-Path $path)) {
+        throw "ファイルが見つかりません: $path"
+    }
+    
+    $content = Get-Content -Path $path -ErrorAction Stop
+    Write-Host "ファイルの内容: $content"
+}
+catch [System.IO.FileNotFoundException] {
+    Write-Error "ファイルが見つかりません: $_"
+    Add-Content -Path $logFile -Value "$(Get-Date): ファイルが見つかりません: $_"
+}
+catch {
+    Write-Error "予期しないエラー: $_"
+    Add-Content -Path $logFile -Value "$(Get-Date): 予期しないエラー: $_"
+}
+finally {
+    Write-Host "処理が完了しました"
+}
+
+try {
+    $url = "https://invalid.example.com"
+    $response = Invoke-WebRequest -Uri $url -ErrorAction Stop
+    Write-Host "レスポンス: $($response.StatusCode)"
+}
+catch [System.Net.WebException] {
+    Write-Error "ネットワークエラー: $_"
+}
+catch {
+    Write-Error "その他のエラー: $_"
+}
+finally {
+    Write-Host "ネットワーク処理終了"
+}
+if ($Error.Count -gt 0) {
+    Write-Warning "エラーが発生しています: $Error[0]"
+}
+
+Write-EventLog -LogName Application -Source "MyScript" -EventId 1000 -Message "エラー: $_"
+
+try {
+    Get-Content -Path "file.txt" -ErrorAction Stop
+}
+catch {
+    $logMessage = "$(Get-Date): エラー: $_"
+    Add-Content -Path "error.log" -Value $logMessage
+}
+
+$DebugPreference = "Continue"
+Write-Debug "変数値: $someVariable"
+catch {
+    Write-Host "エラーメッセージ: $_.Exception.Message"
+    Write-Host "スタックトレース: $_.ScriptStackTrace"
+}
+$fileStream = $null
+try {
+    $fileStream = [System.IO.File]::Open("file.txt", "Open")
+}
+finally {
+    if ($fileStream) { $fileStream.Close() }
+}
+$oldPreference = $ErrorActionPreference
+$ErrorActionPreference = "Stop"
+try {
+    # 処理
+}
+finally {
+    $ErrorActionPreference = $oldPreference
+}
+
+try {
+    Get-ChildItem -Path "invalid_path" -ErrorAction Stop
+}
+catch {
+    Write-Error "ディレクトリが見つかりません: $_"
+}
+
+
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# 対象フォルダのパス
+$sourceFolder = "C:\Path\To\Your\Folder"
+
+# 出力ZIPファイルのパス
+$zipFile = "C:\Path\To\Your\Output\archive.zip"
+
+#ログファイルへの出力: 圧縮結果をログファイルに保存：
+$logFile = "C:\Path\To\Your\Output\compress_log.txt"
+
+# フォルダの存在確認
+if (-not (Test-Path -Path $sourceFolder -PathType Container)) {
+    Write-Host "エラー: 指定フォルダが存在しません: $sourceFolder"
+    exit
+}
+
+# フォルダが空かどうかのチェック
+$folderContent = Get-ChildItem -Path $sourceFolder -Recurse
+if ($null -eq $folderContent) {
+    Write-Host "エラー: 指定フォルダは空です: $sourceFolder"
+    exit
+}
+
+if (Test-Path -Path $zipFile) {
+    Write-Host "エラー: ZIPファイルが既に存在します: $zipFile"
+    exit
+}
+
+
+
+try {
+    # ZIPファイルの親フォルダが存在しない場合は作成
+    $zipParentFolder = Split-Path -Path $zipFile -Parent
+    if (-not (Test-Path -Path $zipParentFolder)) {
+        New-Item -Path $zipParentFolder -ItemType Directory -Force | Out-Null
+    }
+
+    # フォルダの内容をZIPに圧縮
+    #Compress-Archive -Path "$sourceFolder\*" -DestinationPath $zipFile -Force
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($sourceFolder, $zipFile)
+
+    Write-Host "圧縮完了: $sourceFolder → $zipFile"
+    Add-Content -Path $logFile -Value "圧縮完了: $sourceFolder → $zipFile"
+}
+catch {
+    Write-Host "エラー: 圧縮中にエラーが発生しました - $_"
+}
+
+
+
+
+# 対象フォルダのパス
+$targetFolder = "C:\Path\To\Your\Folder"
+
+# ファイル名パターンの正規表現
+# xxxx_202504yy.csv にマッチ（xxxx: 任意の文字列, yy: 任意の文字列）
+$pattern = "^(.+)_202504(.+)\.csv$"
+
+# 対象フォルダ内のCSVファイルを再帰的に取得
+Get-ChildItem -Path $targetFolder -Recurse -Include "*.csv" | ForEach-Object {
+    $file = $_
+    $fileName = $file.BaseName
+    $extension = $file.Extension
+    
+    # ファイル名がパターンに一致するかチェック
+    if ($fileName -match $pattern) {
+        # マッチしたグループを取得
+        $prefix = $Matches[1] # xxxx の部分
+        $suffix = $Matches[2] # yy の部分
+        
+        # 新しいファイル名を生成（202504 → 202503）
+        $newFileName = "${prefix}_202503${suffix}${extension}"
+        $newFilePath = Join-Path -Path $file.DirectoryName -ChildPath $newFileName
+        if (-not (Test-Path $newFilePath)) {
+            try {
+                # ファイルをコピー
+                Copy-Item -Path $file.FullName -Destination $newFilePath -Force
+                Write-Host "コピー完了: $($file.FullName) → $newFilePath"
+            }
+            catch {
+                Write-Host "エラー: $($file.FullName) のコピー中にエラーが発生しました - $_"
+            }
+        
+        }
+        else {
+            Write-Host "スキップ: $newFilePath は既に存在します"
+        }
+
+
+    }
+}
+
+
+
+
+# ユーザー環境変数に値を代入
+[Environment]::SetEnvironmentVariable("MY_VARIABLE", "MyValue", "User")
+
+# 確認
+Get-ChildItem Env:MY_VARIABLE
+
+
+
+# 対象フォルダのパス
+$targetFolder = "C:\Path\To\Your\Folder"
+
+# 対象ファイルの拡張子
+$targetExtensions = @("*.csv", "*.conf")
+
+# 文字コードを検出する関数
+function Get-FileEncoding {
+    param (
+        [string]$FilePath
+    )
+    try {
+        # ファイルの内容をバイト単位で読み込む
+        $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+        
+        # BOMに基づくエンコーディング検出
+        if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+            return "UTF-8 (BOM)"
+        }
+        elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+            return "UTF-16 LE"
+        }
+        elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+            return "UTF-16 BE"
+        }
+
+        # Shift-JISとEUC-JPの検出
+        $isShiftJis = $true
+        $isEucJp = $true
+        $i = 0
+
+        while ($i -lt $bytes.Length) {
+            # 1バイト目
+            $byte1 = $bytes[$i]
+
+            # ASCII範囲 (0x00-0x7F) はどちらでも有効
+            if ($byte1 -le 0x7F) {
+                $i++
+                continue
+            }
+
+            # Shift-JISの2バイト文字チェック
+            # 0x81-0x9F, 0xE0-0xFC の範囲が1バイト目
+            if (($byte1 -ge 0x81 -and $byte1 -le 0x9F) -or ($byte1 -ge 0xE0 -and $byte1 -le 0xFC)) {
+                if ($i + 1 -lt $bytes.Length) {
+                    $byte2 = $bytes[$i + 1]
+                    # 2バイト目は 0x40-0x7E, 0x80-0xFC
+                    if (($byte2 -ge 0x40 -and $byte2 -le 0x7E) -or ($byte2 -ge 0x80 -and $byte2 -le 0xFC)) {
+                        $i += 2
+                        continue
+                    }
+                }
+                $isShiftJis = $false
+            }
+            else {
+                $isShiftJis = $false
+            }
+
+            # EUC-JPの2バイト文字チェック
+            # 0xA1-0xFE の範囲が1バイト目
+            if ($byte1 -ge 0xA1 -and $byte1 -le 0xFE) {
+                if ($i + 1 -lt $bytes.Length) {
+                    $byte2 = $bytes[$i + 1]
+                    # 2バイト目は 0xA1-0xFE
+                    if ($byte2 -ge 0xA1 -and $byte2 -le 0xFE) {
+                        $i += 2
+                        continue
+                    }
+                }
+                $isEucJp = $false
+            }
+            # EUC-JPの3バイト文字（SS3, 0x8F）
+            elseif ($byte1 -eq 0x8F) {
+                if ($i + 2 -lt $bytes.Length) {
+                    $byte2 = $bytes[$i + 1]
+                    $byte3 = $bytes[$i + 2]
+                    if ($byte2 -ge 0xA1 -and $byte2 -le 0xFE -and $byte3 -ge 0xA1 -and $byte3 -le 0xFE) {
+                        $i += 3
+                        continue
+                    }
+                }
+                $isEucJp = $false
+            }
+            else {
+                $isEucJp = $false
+            }
+
+            # どちらにも該当しない場合はループを抜ける
+            if (-not $isShiftJis -and -not $isEucJp) {
+                break
+            }
+        }
+
+        # 結果の判定
+        if ($isShiftJis -and -not $isEucJp) {
+            return "Shift-JIS"
+        }
+        elseif ($isEucJp -and -not $isShiftJis) {
+            return "EUC-JP"
+        }
+        elseif ($isShiftJis -and $isEucJp) {
+            return "Ambiguous (Shift-JIS or EUC-JP)"
+        }
+        else {
+            # その他のエンコーディングを推定
+            $reader = [System.IO.StreamReader]::new($FilePath, $true)
+            $reader.ReadLine() | Out-Null
+            $encoding = $reader.CurrentEncoding.EncodingName
+            $reader.Close()
+            return $encoding
+        }
+    }
+    catch {
+        return "Error: $_"
+    }
+}
+
+function Get-NewLineType {
+    param (
+        [string]$FilePath
+    )
+    try {
+        # ファイルの内容をテキストとして読み込む
+        $content = [System.IO.File]::ReadAllText($FilePath)
+        
+        # 改行コードの検出
+        if ($content -match "`r`n") {
+            return "CRLF"
+        }
+        elseif ($content -match "`n") {
+            return "LF"
+        }
+        elseif ($content -match "`r") {
+            return "CR"
+        }
+        else {
+            return "No NewLine"
+        }
+    }
+    catch {
+        return "Error: $_"
+    }
+}
+
+# 対象フォルダ内のファイルを再帰的に取得して確認
+#foreach ($extension in $targetExtensions) {
+#    Get-ChildItem -Path $targetFolder -Recurse -Include $extension | ForEach-Object {
+#        $file = $_
+#        Write-Host "ファイル: $($file.FullName)"
+#        
+#        # 文字コードを確認
+#        $encoding = Get-FileEncoding -FilePath $file.FullName
+#        Write-Host "  文字コード: $encoding"
+#        
+#        # 改行コードを確認
+#        $newLine = Get-NewLineType -FilePath $file.FullName
+#        Write-Host "  改行コード: $newLine"
+#        Write-Host ""
+#    }
+#}
+
+
+$results = @()
+foreach ($extension in $targetExtensions) {
+    Get-ChildItem -Path $targetFolder -Recurse -Include $extension | ForEach-Object {
+        $file = $_
+        $encoding = Get-FileEncoding -FilePath $file.FullName
+        $newLine = Get-NewLineType -FilePath $file.FullName
+        $results += [PSCustomObject]@{
+            FilePath   = $file.FullName
+            Encoding   = $encoding
+            NewLine    = $newLine
+        }
+    }
+}
+$results | Export-Csv -Path "C:\Path\To\Output\result.csv" -NoTypeInformation -Encoding UTF8
+
+
+
+#!/bin/bash
+
+# ファイルパス
+changes_file="changes.csv"
+data_file="data.csv"
+output_file="output.csv"
+target_column=2  # 置換対象の列番号（Valueは2列目）
+
+# 一時ファイル作成
+temp_file="temp_data.csv"
+
+# ヘッダーを保持しつつ、データを処理
+head -n 1 "$data_file" > "$output_file"  # ヘッダー行をコピー
+
+# changes.csvから置換ルールを読み込み、data.csvを処理
+tail -n +2 "$changes_file" | while IFS=',' read -r before after; do
+    # data.csvの対象列を置換（ヘッダー除く）
+    awk -v col="$target_column" -v b="$before" -v a="$after" \
+        'BEGIN{FS=OFS=","} NR>1{if($col==b)$col=a}1' "$data_file" > "$temp_file"
+    mv "$temp_file" "$data_file"
+done
+
+# 最終結果をoutput.csvに移動
+mv "$data_file" "$output_file"
+
+echo "処理が完了しました。出力ファイル: $output_file"
+
+
+
+
+Excel COMオブジェクトの利用が要求されたので、よろしくお願いいたします。
+Excel COMオブジェクトを使用して、Excelファイルから変更ルールを読み込み、CSVファイルの指定項目を別の値に変更するPowerShellスクリプトを作成します。以下に実装例とその考え方を示します。
+
+前提条件
+Excelがローカルマシンにインストールされている（COMオブジェクトを使用するため）。
+Excelファイル（例: changes.xlsx）に「Before」と「After」の列がある。
+CSVファイル（例: data.csv）の特定の列（例: Value）を置換対象とする。
+
+
+
+# ファイルパス
+$excelPath = "C:\path\to\changes.xlsx"
+$csvPath = "C:\path\to\data.csv"
+$outputCsvPath = "C:\path\to\output.csv"
+$targetColumn = "Value"  # 置換対象のCSV列名
+
+# Excel COMオブジェクトの作成
+$excel = New-Object -ComObject Excel.Application
+$excel.Visible = $false  # Excelを非表示で実行
+$workbook = $excel.Workbooks.Open($excelPath)
+$worksheet = $workbook.Worksheets.Item(1)  # 最初のシートを対象
+
+# 使用済み範囲を取得
+$usedRange = $worksheet.UsedRange
+$rows = $usedRange.Rows.Count
+
+# 変更ルールをハッシュテーブルに格納
+$changeMap = @{}
+for ($row = 2; $row -le $rows; $row++) {  # ヘッダーを除く2行目から
+    $before = $worksheet.Cells.Item($row, 1).Value2  # 1列目: Before
+    $after = $worksheet.Cells.Item($row, 2).Value2   # 2列目: After
+    if ($before -and $after) {
+        $changeMap[$before] = $after
+    }
+}
+
+# Excelを閉じる
+$workbook.Close()
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+
+# CSVを読み込み、指定列を置換
+$data = Import-Csv -Path $csvPath
+foreach ($row in $data) {
+    $currentValue = $row.$targetColumn
+    if ($changeMap.ContainsKey($currentValue)) {
+        $row.$targetColumn = $changeMap[$currentValue]
+    }
+}
+
+# 結果を新しいCSVに保存
+$data | Export-Csv -Path $outputCsvPath -NoTypeInformation -Encoding UTF8
+
+Write-Host "処理が完了しました。出力ファイル: $outputCsvPath"
+
+
+コードの説明
+Excel COMオブジェクトの初期化:
+New-Object -ComObject Excel.ApplicationでExcelを起動。
+$excel.Visible = $falseでバックグラウンド実行。
+対象のExcelファイルを開き、最初のワークシートを取得。
+変更ルールの読み込み:
+$worksheet.UsedRangeで使用されているセル範囲を取得。
+2行目（ヘッダー除く）からデータを読み込み、ハッシュテーブルに格納。
+Cells.Item(行, 列).Value2でセル値を参照。
+COMオブジェクトの解放:
+Excelを閉じ、リソースを解放（メモリリーク防止）。
+ReleaseComObjectで明示的に解放。
+CSVの処理:
+Import-CsvでCSVを読み込み、指定列（$targetColumn）をチェック。
+ハッシュテーブルに基づいて値を置換。
+出力:
+Export-Csvで結果を保存。
+実行方法
+スクリプトをreplace_com.ps1として保存。
+PowerShellで実行:
+powershell
+
+折りたたむ
+
+たたむ
+
+コピー
+.\replace_com.ps1
+output.csvに置換結果が出力される。
+注意点
+エラーハンドリングの追加:
+powershell
+
+折りたたむ
+
+たたむ
+
+コピー
+try {
+    $excel = New-Object -ComObject Excel.Application -ErrorAction Stop
+} catch {
+    Write-Error "Excelの起動に失敗しました: $_"
+    exit
+}
+COMオブジェクトのクリーンアップ:
+Excelがプロセスに残らないよう、必ずQuitとReleaseComObjectを実行。
+パフォーマンス:
+大量データの場合、COMオブジェクトはImportExcelより遅い可能性あり。
+考え方のポイント
+COMの基本:
+Excel COMはオブジェクト指向で、セル単位やシート単位で操作可能。
+リソース管理が重要（解放漏れでプロセスが残るリスク）。
+データ処理の効率化:
+ハッシュテーブルで検索を高速化。
+CSVの操作はPowerShellの強みを活かす。
+柔軟性:
+$targetColumnをパラメータ化すれば、任意の列に対応可能。
+このスクリプトをベースに、ファイルパスや対象列を調整してください。追加の質問があればお気軽にどうぞ！
+

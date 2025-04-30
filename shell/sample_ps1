@@ -1,3 +1,311 @@
+bashで文字列の改行コードを除去するサンプルをご提示お願い致します。
+
+
+
+
+Bashで文字列の改行コードを除去するサンプルをいくつか示します：
+
+trコマンドを使用:
+bash
+
+コピー
+echo "文字列\n" | tr -d '\n'
+# または
+string="文字列\n"
+echo -n "${string}" | tr -d '\n'
+sedコマンドを使用:
+bash
+
+コピー
+echo "文字列\n" | sed ':a;N;$!ba;s/\n//g'
+# または
+string="文字列\n"
+echo -n "${string}" | sed 's/\n//g'
+変数内の改行をパラメータ展開で除去:
+bash
+
+コピー
+string="文字列\n"
+echo -n "${string//[$'\n']}"
+awkを使用:
+bash
+
+コピー
+echo "文字列\n" | awk '{printf "%s", $0}'
+実行例：
+
+bash
+
+コピー
+$ string="Hello\nWorld\n"
+$ echo -n "${string}" | tr -d '\n'
+HelloWorld
+ポイント：
+
+echo -n は末尾の改行を追加しないオプション
+複数行の改行を全て除去する場合は sed や tr が便利
+変数直接操作する場合はパラメータ展開がシンプル
+用途に応じて適切な方法を選択してください。
+
+
+
+
+# 設定
+$targetFolder = "C:\Configs"  # 対象フォルダ
+$logFile = "C:\Logs\rename_log_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"  # ログファイル
+$prefixPattern = "XXXXXXXX_"  # 検索パターン
+$datePrefix = Get-Date -Format "yyyyMMdd"  # 当日の日付（例: 20250408）
+
+# ログフォルダの作成
+$logDir = Split-Path $logFile -Parent
+if (-not (Test-Path $logDir)) {
+    New-Item -Path $logDir -ItemType Directory -Force
+}
+
+# ログ記録関数
+function Write-Log {
+    param ([string]$Message)
+    $logMessage = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'): $Message"
+    Write-Host $logMessage
+    Add-Content -Path $logFile -Value $logMessage
+}
+
+try {
+    # 対象ファイルの検索（サブフォルダを含む）
+    $files = Get-ChildItem -Path $targetFolder -Recurse -File -Filter "*.conf" |
+             Where-Object { $_.BaseName -like "$prefixPattern*" }
+
+    if ($files.Count -eq 0) {
+        Write-Log "対象ファイルが見つかりませんでした。"
+        exit
+    }
+
+    # 各ファイルを処理
+    foreach ($file in $files) {
+        Write-Log "処理中のファイル: $($file.FullName)"
+
+        # 新しいファイル名の生成
+        $originalBaseName = $file.BaseName
+        $newBaseName = $originalBaseName -replace "^$prefixPattern", $datePrefix
+        $newFileName = "$newBaseName$($file.Extension)"
+        $newFilePath = Join-Path -Path $file.DirectoryName -ChildPath $newFileName
+
+        # ファイル名衝突のチェック
+        if (Test-Path $newFilePath) {
+            Write-Log "警告: 新しいファイル名が既に存在します: $newFilePath。スキップします。"
+            continue
+        }
+
+        # リネーム実行
+        try {
+            Rename-Item -Path $file.FullName -NewName $newFileName -ErrorAction Stop
+            Write-Log "リネーム成功: $($file.FullName) -> $newFilePath"
+        }
+        catch {
+            Write-Log "リネーム失敗: $($file.FullName)。エラー: $_"
+        }
+    }
+
+    Write-Log "すべての処理が完了しました。"
+}
+catch {
+    Write-Log "スクリプト全体でエラーが発生しました: $_"
+}
+
+
+
+# 別のPowerShellスクリプトを新しいプロセスで実行
+$scriptPath = "C:\Scripts\MyScript.ps1"
+
+# Start-Processで実行し、終了まで待つ
+Start-Process -FilePath "powershell.exe" -ArgumentList "-File `"$scriptPath`"" -Wait
+
+# 次の処理
+Write-Host "スクリプトが終了しました"
+
+
+
+# リスト（配列）の定義
+$fruits = @("Apple", "Banana", "Orange", "Mango")
+
+# forループでインデックスを利用
+for ($i = 0; $i -lt $fruits.Length; $i++) {
+    Write-Host "インデックス: $i, 値: $($fruits[$i])"
+}
+
+# リストの定義
+$fruits = @("Apple", "Banana", "Orange", "Mango")
+
+# インデックスを追跡するカウンタ
+$index = 0
+
+# foreachループ
+foreach ($fruit in $fruits) {
+    Write-Host "インデックス: $index, 値: $fruit"
+    $index++
+}
+
+
+
+# rename_multiple_zip_csv.ps1
+# 複数のZIPファイル内のxxxxx_20250429.csvをxxxxx_20250430.csvにリネームし、再度ZIP化
+
+# 変数の定義
+$inputZipDir = "C:\temp\zips"           # 入力ZIPファイルが格納されたディレクトリ
+$outputZipDir = "C:\temp\output"         # 出力ZIPファイルの保存ディレクトリ
+$tempDirBase = "C:\temp\extracted"       # 解凍用一時フォルダのベース
+$oldFilePattern = "*_20250429.csv"       # リネーム対象ファイル
+$newFileName = "_20250430.csv"           # 新しいファイル名（末尾）
+
+# エラーハンドリングとログ
+$ErrorActionPreference = "Stop"
+Write-Host "Starting processing of multiple ZIP files in $inputZipDir..."
+
+try {
+    # 出力ディレクトリの作成
+    if (-not (Test-Path $outputZipDir)) {
+        New-Item -ItemType Directory -Path $outputZipDir | Out-Null
+    }
+
+    # 入力ZIPファイルの取得
+    $zipFiles = Get-ChildItem -Path $inputZipDir -Filter "*.zip"
+    if ($zipFiles.Count -eq 0) {
+        Write-Warning "No ZIP files found in $inputZipDir."
+        # デバッグ用ブレークポイント条件：ZIPファイルが見つからない場合
+        # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if ($zipFiles.Count -eq 0) { break } }
+        return
+    }
+
+    # 各ZIPファイルを処理
+    foreach ($zipFile in $zipFiles) {
+        Write-Host "Processing $($zipFile.FullName)..."
+        
+        # ZIPごとの一時フォルダを作成
+        $tempDir = Join-Path -Path $tempDirBase -ChildPath $zipFile.BaseName
+        if (-not (Test-Path $tempDir)) {
+            New-Item -ItemType Directory -Path $tempDir | Out-Null
+        }
+
+        # ZIPファイルを解凍
+        Write-Host "Extracting $($zipFile.FullName) to $tempDir..."
+        Expand-Archive -Path $zipFile.FullName -DestinationPath $tempDir -Force
+
+        # 対象ファイルの検索
+        $files = Get-ChildItem -Path $tempDir -Recurse -Include $oldFilePattern
+        if ($files.Count -eq 0) {
+            Write-Warning "No files matching $oldFilePattern found in $($zipFile.Name)."
+            # デバッグ用ブレークポイント条件：ファイルが見つからない場合
+            # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if ($files.Count -eq 0) { break } }
+            continue
+        }
+
+        # ファイルのリネーム
+        foreach ($file in $files) {
+            $newFilePath = Join-Path -Path $file.DirectoryName -ChildPath ($file.BaseName -replace "_20250429$", $newFileName)
+            Write-Host "Renaming $($file.FullName) to $newFilePath..."
+            Rename-Item -Path $file.FullName -NewName $newFilePath
+            # デバッグ用ブレークポイント条件：リネーム後のファイルが存在しない場合
+            # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if (-not (Test-Path $newFilePath)) { break } }
+        }
+
+        # 新しいZIPファイルを作成
+        $outputZipPath = Join-Path -Path $outputZipDir -ChildPath ("output_" + $zipFile.Name)
+        Write-Host "Creating new ZIP file at $outputZipPath..."
+        if (Test-Path $outputZipPath) {
+            Remove-Item -Path $outputZipPath
+        }
+        Compress-Archive -Path "$tempDir\*" -DestinationPath $outputZipPath -Force
+
+        # 一時フォルダのクリーンアップ
+        Remove-Item -Path $tempDir -Recurse -Force
+        Write-Host "Processed $($zipFile.Name) successfully."
+    }
+
+    Write-Host "All ZIP files processed successfully."
+}
+catch {
+    Write-Error "An error occurred: $($_.Exception.Message)"
+    # デバッグ用ブレークポイント条件：エラーが発生した場合
+    # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if ($_.Exception) { break } }
+}
+finally {
+    # 一時フォルダベースのクリーンアップ
+    if (Test-Path $tempDirBase) {
+        Remove-Item -Path $tempDirBase -Recurse -Force
+        Write-Host "Cleaned up temporary directory."
+    }
+}
+
+
+
+
+# rename_zip_csv.ps1
+# ZIPファイル内のxxxxx_20250429.csvをxxxxx_20250430.csvにリネームし、再度ZIP化
+
+# 変数の定義
+$zipPath = "C:\temp\input.zip"           # 入力ZIPファイル
+$outputZipPath = "C:\temp\output.zip"    # 出力ZIPファイル
+$tempDir = "C:\temp\extracted"           # 解凍用一時フォルダ
+$oldFilePattern = "*_20250429.csv"       # リネーム対象ファイル
+$newFileName = "_20250430.csv"           # 新しいファイル名（末尾）
+
+# エラーハンドリングとログ
+$ErrorActionPreference = "Stop"
+Write-Host "Starting ZIP file processing..."
+
+try {
+    # 一時フォルダの作成
+    if (-not (Test-Path $tempDir)) {
+        New-Item -ItemType Directory -Path $tempDir | Out-Null
+    }
+
+    # ZIPファイルを解凍
+    Write-Host "Extracting $zipPath to $tempDir..."
+    Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+
+    # 対象ファイルの検索
+    $files = Get-ChildItem -Path $tempDir -Recurse -Include $oldFilePattern
+    if ($files.Count -eq 0) {
+        Write-Warning "No files matching $oldFilePattern found."
+        # デバッグ用ブレークポイント条件：ファイルが見つからない場合
+        # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if ($files.Count -eq 0) { break } }
+        return
+    }
+
+    # ファイルのリネーム
+    foreach ($file in $files) {
+        $newFilePath = Join-Path -Path $file.DirectoryName -ChildPath ($file.BaseName -replace "_20250429$", $newFileName)
+        Write-Host "Renaming $($file.FullName) to $newFilePath..."
+        Rename-Item -Path $file.FullName -NewName $newFilePath
+        # デバッグ用ブレークポイント条件：リネーム後のファイルが存在しない場合
+        # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if (-not (Test-Path $newFilePath)) { break } }
+    }
+
+    # 新しいZIPファイルを作成
+    Write-Host "Creating new ZIP file at $outputZipPath..."
+    if (Test-Path $outputZipPath) {
+        Remove-Item -Path $outputZipPath
+    }
+    Compress-Archive -Path "$tempDir\*" -DestinationPath $outputZipPath -Force
+
+    Write-Host "Processing completed successfully."
+}
+catch {
+    Write-Error "An error occurred: $($_.Exception.Message)"
+    # デバッグ用ブレークポイント条件：エラーが発生した場合
+    # Set-PSBreakpoint -Script $PSCommandPath -Line ($PSCommandPath:LineNumber + 2) -Action { if ($_.Exception) { break } }
+}
+finally {
+    # 一時フォルダのクリーンアップ
+    if (Test-Path $tempDir) {
+        Remove-Item -Path $tempDir -Recurse -Force
+        Write-Host "Cleaned up temporary directory."
+    }
+}
+
+
+
+
 $ErrorActionPreference = "Continue" # デフォルト設定
 $logFile = "C:\Logs\error.log"
 

@@ -1,3 +1,678 @@
+@echo off
+setlocal
+
+:: FTPサーバーの設定
+set FTP_HOST=ftp.example.com
+set FTP_USER=your_username
+set FTP_PASS=your_password
+set FTP_DIR=/remote/directory/
+set LOCAL_FILE=C:\path\to\local\file.bin
+set REMOTE_FILE=file.bin
+
+:: FTPコマンドファイルの作成
+echo open %FTP_HOST%> ftp_commands.txt
+echo %FTP_USER%>> ftp_commands.txt
+echo %FTP_PASS%>> ftp_commands.txt
+echo binary>> ftp_commands.txt
+echo lcd %LOCAL_FILE%\..>> ftp_commands.txt
+echo cd %FTP_DIR%>> ftp_commands.txt
+echo put %LOCAL_FILE% %REMOTE_FILE%>> ftp_commands.txt
+echo quit>> ftp_commands.txt
+
+:: FTPコマンドの実行
+ftp -s:ftp_commands.txt
+
+:: コマンドファイルの削除
+del ftp_commands.txt
+
+echo ファイル転送が完了しました。
+pause
+endlocal
+
+
+
+$ftpHost = "ftp.example.com"
+$ftpUser = "your_username"
+$ftpPass = "your_password"
+$localFile = "C:\path\to\local\file.bin"
+$remoteFile = "/remote/directory/file.bin"
+
+$webClient = New-Object System.Net.WebClient
+$webClient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+$webClient.UploadFile("ftp://$ftpHost$remoteFile", $localFile)
+Write-Host "ファイル転送が完了しました。"
+
+
+
+function Test-TextFileShiftJisOrAsciiCrlf {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$FilePath
+    )
+
+    try {
+        # ファイルが存在するか確認
+        if (-not (Test-Path $FilePath)) {
+            Write-Output "ファイルが存在しません: $FilePath"
+            return $false
+        }
+
+        # ファイルの内容をバイト単位で読み込む
+        $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+
+        # 1. テキストファイルの確認
+        # 制御文字（0x00-0x1F、ただしCR(0x0D)とLF(0x0A)は除く）が含まれていないかチェック
+        $isText = $true
+        foreach ($byte in $bytes) {
+            if ($byte -lt 0x20 -and $byte -ne 0x0D -and $byte -ne 0x0A) {
+                $isText = $false
+                break
+            }
+        }
+        if (-not $isText) {
+            Write-Output "バイナリデータが含まれているため、テキストファイルではありません。"
+            return $false
+        }
+
+        # 2. Shift-JISまたはASCIIの確認
+        $isShiftJisOrAscii = $false
+        $isShiftJis = $true
+        $isAscii = $true
+        $i = 0
+
+        while ($i -lt $bytes.Length) {
+            if ($bytes[$i] -le 0x7F) {
+                # ASCII範囲 (0x00-0x7F)
+                $i++
+            }
+            else {
+                # ASCII範囲外なので、ASCIIとしては無効
+                $isAscii = $false
+
+                # Shift-JISのチェック
+                $shiftJisValid = $false
+                if (($bytes[$i] -ge 0x81 -and $bytes[$i] -le 0x9F) -or ($bytes[$i] -ge 0xE0 -and $bytes[$i] -le 0xFC)) {
+                    # Shift-JISの2バイト文字の1バイト目
+                    if ($i + 1 -lt $bytes.Length -and
+                        (($bytes[$i + 1] -ge 0x40 -and $bytes[$i + 1] -le 0x7E) -or
+                         ($bytes[$i + 1] -ge 0x80 -and $bytes[$i + 1] -le 0xFC))) {
+                        $shiftJisValid = $true
+                        $i += 2
+                    }
+                }
+                elseif ($bytes[$i] -ge 0xA1 -and $bytes[$i] -le 0xDF) {
+                    # Shift-JISの半角カナ
+                    $shiftJisValid = $true
+                    $i++
+                }
+
+                if (-not $shiftJisValid) {
+                    $isShiftJis = $false
+                    break
+                }
+            }
+        }
+
+        $isShiftJisOrAscii = $isShiftJis -or $isAscii
+        if (-not $isShiftJisOrAscii) {
+            Write-Output "文字コードがShift-JISまたはASCIIではありません。"
+            return $false
+        }
+
+        # 3. 改行コードがCRLFのみか確認
+        $isCrlfOnly = $true
+        $hasCrlf = $false
+        for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -eq 0x0D) {
+                # CR (0x0D)が見つかった場合、CRLFか確認
+                if ($i + 1 -lt $bytes.Length -and $bytes[$i + 1] -eq 0x0A) {
+                    $hasCrlf = $true
+                    $i++  # LFをスキップ
+                }
+                else {
+                    # 単独のCRはNG
+                    $isCrlfOnly = $false
+                    Write-Output "単独のCR改行コードが含まれています。"
+                    break
+                }
+            }
+            elseif ($bytes[$i] -eq 0x0A) {
+                # 単独のLFはNG
+                $isCrlfOnly = $false
+                Write-Output "単独のLF改行コードが含まれています。"
+                break
+            }
+        }
+
+        if (-not $isCrlfOnly) {
+            return $false
+        }
+
+        if (-not $hasCrlf -and $bytes.Length -gt 0) {
+            Write-Output "CRLF改行コードが見つかりませんでした。"
+            return $false
+        }
+
+        # すべての条件を満たした場合
+        Write-Output "ファイルはテキストファイルで、文字コードはShift-JISまたはASCII、改行コードはCRLFです。"
+        return $true
+    }
+    catch {
+        Write-Output "エラーが発生しました: $_"
+        return $false
+    }
+}
+
+# 使用例
+$FilePath = "C:\path\to\your\file.txt"
+Test-TextFileShiftJisOrAsciiCrlf -FilePath $FilePath
+
+
+function Test-TextFileEucJpOrAsciiLf {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$FilePath
+    )
+
+    try {
+        # ファイルが存在するか確認
+        if (-not (Test-Path $FilePath)) {
+            Write-Output "ファイルが存在しません: $FilePath"
+            return $false
+        }
+
+        # ファイルの内容をバイト単位で読み込む
+        $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+
+        # 1. テキストファイルの確認
+        # 制御文字（0x00-0x1F、ただしLF(0x0A)は除く）が含まれていないかチェック
+        $isText = $true
+        foreach ($byte in $bytes) {
+            if ($byte -lt 0x20 -and $byte -ne 0x0A) {
+                $isText = $false
+                break
+            }
+        }
+        if (-not $isText) {
+            Write-Output "バイナリデータが含まれているため、テキストファイルではありません。"
+            return $false
+        }
+
+        # 2. EUC-JPまたはASCII（英語のみ）の確認
+        $isEucJpOrAscii = $false
+        $isEucJp = $true
+        $isAscii = $true
+        $i = 0
+
+        while ($i -lt $bytes.Length) {
+            if ($bytes[$i] -le 0x7F) {
+                # ASCII範囲 (0x00-0x7F)
+                $i++
+            }
+            else {
+                # ASCII範囲外なので、ASCIIとしては無効
+                $isAscii = $false
+
+                # EUC-JPのチェック
+                $eucJpValid = $false
+                if ($bytes[$i] -ge 0xA1 -and $bytes[$i] -le 0xFE) {
+                    # EUC-JPの2バイト文字
+                    if ($i + 1 -lt $bytes.Length -and $bytes[$i + 1] -ge 0xA1 -and $bytes[$i + 1] -le 0xFE) {
+                        $eucJpValid = $true
+                        $i += 2
+                    }
+                }
+                elseif ($bytes[$i] -eq 0x8E) {
+                    # EUC-JPの半角カナ
+                    if ($i + 1 -lt $bytes.Length -and $bytes[$i + 1] -ge 0xA1 -and $bytes[$i + 1] -le 0xDF) {
+                        $eucJpValid = $true
+                        $i += 2
+                    }
+                }
+                elseif ($bytes[$i] -eq 0x8F) {
+                    # EUC-JPの3バイト文字
+                    if ($i + 2 -lt $bytes.Length -and $bytes[$i + 1] -ge 0xA1 -and $bytes[$i + 1] -le 0xFE -and
+                        $bytes[$i + 2] -ge 0xA1 -and $bytes[$i + 2] -le 0xFE) {
+                        $eucJpValid = $true
+                        $i += 3
+                    }
+                }
+
+                if (-not $eucJpValid) {
+                    $isEucJp = $false
+                    break
+                }
+            }
+        }
+
+        $isEucJpOrAscii = $isEucJp -or $isAscii
+        if (-not $isEucJpOrAscii) {
+            Write-Output "文字コードがEUC-JPまたはASCII（英語のみ）ではありません。"
+            return $false
+        }
+
+        # 3. 改行コードがLFのみか確認
+        $isLfOnly = $true
+        for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -eq 0x0D) {
+                # CR (0x0D)が見つかった場合、CRLFか単独CRか確認
+                if ($i + 1 -lt $bytes.Length -and $bytes[$i + 1] -eq 0x0A) {
+                    $isLfOnly = $false
+                    Write-Output "CRLF改行コードが含まれています。"
+                    break
+                }
+                else {
+                    $isLfOnly = $false
+                    Write-Output "CR改行コードが含まれています。"
+                    break
+                }
+            }
+        }
+
+        if (-not $isLfOnly) {
+            return $false
+        }
+
+        # すべての条件を満たした場合
+        Write-Output "ファイルはテキストファイルで、文字コードはEUC-JPまたはASCII（英語のみ）、改行コードはLFです。"
+        return $true
+    }
+    catch {
+        Write-Output "エラーが発生しました: $_"
+        return $false
+    }
+}
+
+# 使用例
+$FilePath = "C:\path\to\your\file.txt"
+Test-TextFileEucJpOrAsciiLf -FilePath $FilePath
+
+
+
+
+param (
+    [Parameter(Mandatory=$true)]
+    [string]$FilePattern
+)
+
+# 入力フォルダと出力フォルダのパス
+$inputFolder = "C:\Temp\Input"
+$outputFolder = "C:\Temp\Output"
+$tempExtractFolder = "C:\Temp\Extracted"
+
+# 出力フォルダと一時展開フォルダの作成
+if (-not (Test-Path $outputFolder)) {
+    New-Item -Path $outputFolder -ItemType Directory | Out-Null
+}
+if (-not (Test-Path $tempExtractFolder)) {
+    New-Item -Path $tempExtractFolder -ItemType Directory | Out-Null
+}
+
+# テキストファイルとZIPファイルを取得
+$txtFiles = Get-ChildItem -Path $inputFolder -Filter $FilePattern -ErrorAction Stop
+$zipFiles = Get-ChildItem -Path $inputFolder -Filter "*.zip" -ErrorAction Stop
+
+if (($txtFiles.Count -eq 0) -and ($zipFiles.Count -eq 0)) {
+    Write-Error "指定されたパターン '$FilePattern' または '*.zip' に一致するファイルが見つかりません。"
+    exit 1
+}
+
+# テキストファイルを処理
+foreach ($file in $txtFiles) {
+    $reader = $null
+    $writer = $null
+    try {
+        $inputFilePath = $file.FullName
+        $outputFilePath = Join-Path $outputFolder $file.Name
+
+        Write-Output "処理中: $inputFilePath"
+        $reader = New-Object System.IO.StreamReader($inputFilePath, [System.Text.Encoding]::UTF8, $true, 1024)
+        $content = $reader.ReadToEnd()
+        
+        Write-Output "内容: $content"
+        
+        $writer = New-Object System.IO.StreamWriter($outputFilePath, $false, [System.Text.Encoding]::UTF8)
+        $writer.Write($content)
+        Write-Output "出力完了: $outputFilePath"
+    }
+    catch [System.IO.FileNotFoundException] {
+        Write-Error "ファイルが見つかりません: $inputFilePath"
+    }
+    catch [System.IO.IOException] {
+        Write-Error "IOエラーが発生しました: $_"
+    }
+    catch {
+        Write-Error "予期しないエラーが発生しました: $_"
+    }
+    finally {
+        if ($reader -ne $null) {
+            $reader.Dispose()
+        }
+        if ($writer -ne $null) {
+            $writer.Dispose()
+        }
+    }
+}
+
+# ZIPファイルを処理
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+foreach ($zipFile in $zipFiles) {
+    try {
+        $zipPath = $zipFile.FullName
+        Write-Output "ZIPファイル展開中: $zipPath"
+        
+        # ZIPを一時フォルダに展開
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $tempExtractFolder, $true)
+        
+        # 展開したフォルダからワイルドカードに一致するファイルを取得
+        $extractedFiles = Get-ChildItem -Path $tempExtractFolder -Filter $FilePattern -Recurse -ErrorAction Stop
+        
+        foreach ($file in $extractedFiles) {
+            $reader = $null
+            $writer = $null
+            try {
+                $inputFilePath = $file.FullName
+                # ZIPファイル名と内部パスを考慮した出力ファイル名
+                $relativePath = $inputFilePath.Substring($tempExtractFolder.Length + 1)
+                $outputFilePath = Join-Path $outputFolder "$($zipFile.BaseName)_$relativePath"
+
+                Write-Output "処理中（ZIP内）: $inputFilePath"
+                $reader = New-Object System.IO.StreamReader($inputFilePath, [System.Text.Encoding]::UTF8, $true, 1024)
+                $content = $reader.ReadToEnd()
+                
+                Write-Output "内容: $content"
+                
+                # 出力先フォルダを作成（必要に応じて）
+                $outputDir = Split-Path $outputFilePath -Parent
+                if (-not (Test-Path $outputDir)) {
+                    New-Item -Path $outputDir -ItemType Directory | Out-Null
+                }
+                
+                $writer = New-Object System.IO.StreamWriter($outputFilePath, $false, [System.Text.Encoding]::UTF8)
+                $writer.Write($content)
+                Write-Output "出力完了: $outputFilePath"
+            }
+            catch {
+                Write-Error "ZIP内ファイル処理エラー ($inputFilePath): $_"
+            }
+            finally {
+                if ($reader -ne $null) {
+                    $reader.Dispose()
+                }
+                if ($writer -ne $null) {
+                    $writer.Dispose()
+                }
+            }
+        }
+    }
+    catch {
+        Write-Error "ZIPファイル処理エラー ($zipPath): $_"
+    }
+    finally {
+        # 一時フォルダをクリーンアップ
+        if (Test-Path $tempExtractFolder) {
+            Remove-Item -Path "$tempExtractFolder\*" -Recurse -Force
+        }
+    }
+}
+
+# 最後に一時フォルダを削除
+if (Test-Path $tempExtractFolder) {
+    Remove-Item -Path $tempExtractFolder -Recurse -Force
+}
+
+
+
+
+# コマンドライン引数からワイルドカードを取得
+param (
+    [Parameter(Mandatory=$true)]
+    [string]$FilePattern
+)
+
+# 入力フォルダと出力フォルダのパス
+$inputFolder = "C:\Temp\Input"
+$outputFolder = "C:\Temp\Output"
+
+# 出力フォルダが存在しない場合は作成
+if (-not (Test-Path $outputFolder)) {
+    New-Item -Path $outputFolder -ItemType Directory | Out-Null
+}
+
+# ワイルドカードでファイルを検索
+$files = Get-ChildItem -Path $inputFolder -Filter $FilePattern -ErrorAction Stop
+
+if ($files.Count -eq 0) {
+    Write-Error "指定されたパターン '$FilePattern' に一致するファイルが見つかりません。"
+    exit 1
+}
+
+foreach ($file in $files) {
+    $reader = $null
+    $writer = $null
+    try {
+        # 入力ファイルと出力ファイルのパス
+        $inputFilePath = $file.FullName
+        $outputFilePath = Join-Path $outputFolder $file.Name
+
+        # ファイルの読み込み
+        Write-Output "処理中: $inputFilePath"
+        $reader = New-Object System.IO.StreamReader($inputFilePath, [System.Text.Encoding]::UTF8, $true, 1024)
+        $content = $reader.ReadToEnd()
+        
+        # 内容をコンソールに出力（例）
+        Write-Output "内容: $content"
+
+        # 出力ファイルに書き込み
+        $writer = New-Object System.IO.StreamWriter($outputFilePath, $false, [System.Text.Encoding]::UTF8)
+        $writer.Write($content)
+        Write-Output "出力完了: $outputFilePath"
+    }
+    catch [System.IO.FileNotFoundException] {
+        Write-Error "ファイルが見つかりません: $inputFilePath"
+    }
+    catch [System.IO.IOException] {
+        Write-Error "IOエラーが発生しました: $_"
+    }
+    catch {
+        Write-Error "予期しないエラーが発生しました: $_"
+    }
+    finally {
+        # リソースの解放
+        if ($reader -ne $null) {
+            $reader.Dispose()
+        }
+        if ($writer -ne $null) {
+            $writer.Dispose()
+        }
+    }
+}
+
+
+
+
+
+# 入力フォルダと出力フォルダのパス
+$inputFolder = "C:\Temp\Input"
+$outputFolder = "C:\Temp\Output"
+
+# 出力フォルダが存在しない場合は作成
+if (-not (Test-Path $outputFolder)) {
+    New-Item -Path $outputFolder -ItemType Directory | Out-Null
+}
+
+# ワイルドカードで.txtファイルを取得
+$files = Get-ChildItem -Path $inputFolder -Filter "*.txt"
+
+foreach ($file in $files) {
+    $reader = $null
+    $writer = $null
+    try {
+        # 入力ファイルのパス
+        $inputFilePath = $file.FullName
+        # 出力ファイルのパス（同じファイル名で出力フォルダに保存）
+        $outputFilePath = Join-Path $outputFolder $file.Name
+
+        # ファイルの読み込み
+        Write-Output "処理中: $inputFilePath"
+        $reader = New-Object System.IO.StreamReader($inputFilePath, [System.Text.Encoding]::UTF8)
+        $content = $reader.ReadToEnd()
+        
+        # 内容をコンソールに出力（例）
+        Write-Output "内容: $content"
+
+        # 出力ファイルに書き込み
+        $writer = New-Object System.IO.StreamWriter($outputFilePath, $false, [System.Text.Encoding]::UTF8)
+        $writer.Write($content)
+        Write-Output "出力完了: $outputFilePath"
+    }
+    catch [System.IO.FileNotFoundException] {
+        Write-Error "ファイルが見つかりません: $inputFilePath"
+    }
+    catch [System.IO.IOException] {
+        Write-Error "IOエラーが発生しました: $_"
+    }
+    catch {
+        Write-Error "予期しないエラーが発生しました: $_"
+    }
+    finally {
+        # リソースの解放
+        if ($reader -ne $null) {
+            $reader.Dispose()
+        }
+        if ($writer -ne $null) {
+            $writer.Dispose()
+        }
+    }
+}
+
+
+
+
+
+
+$filePath = "example.txt"
+$reader = $null
+try {
+    $reader = New-Object System.IO.StreamReader($filePath)
+    $content = $reader.ReadToEnd()
+    Write-Output $content
+}
+catch {
+    Write-Error "エラーが発生しました: $_"
+}
+finally {
+    if ($reader -ne $null) {
+        $reader.Dispose()
+    }
+}
+
+
+$filePath = "example.txt"
+$reader = $null
+try {
+    $reader = New-Object System.IO.StreamReader($filePath)
+    $content = $reader.ReadToEnd()
+    Write-Output $content
+}
+catch [System.IO.FileNotFoundException] {
+    Write-Error "ファイルが見つかりません: $filePath"
+}
+catch [System.IO.IOException] {
+    Write-Error "IOエラーが発生しました: $_"
+}
+catch {
+    Write-Error "予期しないエラーが発生しました: $_"
+}
+finally {
+    if ($reader -ne $null) {
+        $reader.Dispose()
+    }
+}
+
+
+$filePath = "example.txt"
+$writer = $null
+try {
+    $writer = New-Object System.IO.StreamWriter($filePath, $false, [System.Text.Encoding]::UTF8)
+    $writer.WriteLine("こんにちは、世界！")
+}
+catch {
+    Write-Error "書き込み中にエラーが発生しました: $_"
+}
+finally {
+    if ($writer -ne $null) {
+        $writer.Dispose()
+    }
+}
+
+
+$filePath = "example.txt"
+$writer = $null
+try {
+    $writer = New-Object System.IO.StreamWriter($filePath)
+    $writer.AutoFlush = $true
+    $writer.WriteLine("即時書き込み")
+}
+catch {
+    Write-Error "エラーが発生しました: $_"
+}
+finally {
+    if ($writer -ne $null) {
+        $writer.Dispose()
+    }
+}
+
+$filePath = Join-Path $PSScriptRoot "example.txt"
+$writer = $null
+try {
+    $writer = New-Object System.IO.StreamWriter($filePath)
+    $writer.WriteLine("行末$([System.Environment]::NewLine)次の行")
+}
+catch {
+    Write-Error "エラーが発生しました: $_"
+}
+finally {
+    if ($writer -ne $null) {
+        $writer.Dispose()
+    }
+}
+
+# 簡単な読み込みにはGet-Contentを使用
+$content = Get-Content -Path "example.txt" -Raw
+Write-Output $content
+
+# StreamReaderを使用する場合（エンコーディングやパフォーマンス重視）
+$reader = $null
+try {
+    $reader = New-Object System.IO.StreamReader("example.txt", [System.Text.Encoding]::UTF8)
+    $content = $reader.ReadToEnd()
+    Write-Output $content
+}
+catch {
+    Write-Error "エラーが発生しました: $_"
+}
+finally {
+    if ($reader -ne $null) {
+        $reader.Dispose()
+    }
+}
+
+まとめ
+PowerShell 5.1でSystem.IO.StreamReaderとSystem.IO.StreamWriterを安全に使用するためのポイント：
+
+try/finallyでリソースを確実に解放。
+例外処理をtry/catchで適切に実装。
+エンコーディングを明示的に指定（例: [System.Text.Encoding]::UTF8）。
+Test-Pathでファイルの存在を確認。
+大きなファイルではReadLine()やバッファサイズ指定で効率化。
+即時書き込みが必要な場合はAutoFlushやFlush()を使用。
+Join-Pathや[System.Environment]::NewLineでパスや改行コードを管理。
+簡単な操作ではGet-ContentやSet-Contentを検討。
+これらを実践することで、PowerShell 5.1でのファイル操作を安全かつ効率的に行えます。
+
+
+
 # 圧縮するフォルダと出力先のZIPファイルのパスを指定
 $sourceFolder = "C:\Path\To\Your\Folder"  # 圧縮したいフォルダのパス
 $destinationZip = "C:\Path\To\Output\Archive.zip"  # 出力するZIPファイルのパス
